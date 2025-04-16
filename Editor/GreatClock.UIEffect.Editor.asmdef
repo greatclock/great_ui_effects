@@ -1,0 +1,17 @@
+{
+    "name": "GreatClock.UIEffect.Editor",
+    "references": [
+        "GUID:7604769d22f8add47a8430b26469738c"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
