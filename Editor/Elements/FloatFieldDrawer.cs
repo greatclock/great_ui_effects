@@ -16,7 +16,7 @@ namespace GreatClock.Common.UIEffect {
 			SerializedProperty pUseCurve = property.FindPropertyRelative("m_UseCurve");
 			float width = 60f;
 			Rect r1 = new Rect(position.x, position.y, position.width - width - 2f, position.height);
-			Rect r2 = new Rect(position.width - width + 20f, position.y, width + 20f, position.height);
+			Rect r2 = new Rect(position.xMax - width, position.y, width, position.height);
 			EditorGUI.PropertyField(r1, pUseCurve.boolValue ? pCurve : pConstValue, label);
 			// int indent = EditorGUI.indentLevel;
 			// EditorGUI.indentLevel = 0;
