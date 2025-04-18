@@ -75,6 +75,7 @@
                 fixed4 color    : COLOR;
                 float4 texcoord  : TEXCOORD0;
                 float4 worldPosition : TEXCOORD1;
+                float4 mask : TEXCOORD2;
                 UNITY_VERTEX_OUTPUT_STEREO
             };
 
@@ -83,6 +84,9 @@
             fixed4 _TextureSampleAdd;
             float4 _ClipRect;
             float4 _MainTex_ST;
+            float _UIMaskSoftnessX;
+            float _UIMaskSoftnessY;
+            int _UIVertexColorAlwaysGammaSpace;
 
             v2f vert(appdata_t v)
             {
@@ -90,11 +94,24 @@
                 UNITY_SETUP_INSTANCE_ID(v);
                 UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(OUT);
                 OUT.worldPosition = v.vertex;
-                OUT.vertex = UnityObjectToClipPos(OUT.worldPosition);
+                float4 vPosition = UnityObjectToClipPos(OUT.worldPosition);
+                OUT.vertex = vPosition;
 
                 OUT.texcoord.xy = TRANSFORM_TEX(v.texcoord, _MainTex);
                 OUT.texcoord.zw = v.texcoord2;
 
+                float2 pixelSize = vPosition.w;
+                pixelSize /= float2(1, 1) * abs(mul((float2x2)UNITY_MATRIX_P, _ScreenParams.xy));
+                float4 clampedRect = clamp(_ClipRect, -2e10, 2e10);
+                float2 maskUV = (v.vertex.xy - clampedRect.xy) / (clampedRect.zw - clampedRect.xy);
+                OUT.mask = float4(v.vertex.xy * 2 - clampedRect.xy - clampedRect.zw, 0.25 / (0.25 * half2(_UIMaskSoftnessX, _UIMaskSoftnessY) + abs(pixelSize.xy)));
+
+#ifndef UNITY_COLORSPACE_GAMMA
+                if (_UIVertexColorAlwaysGammaSpace)
+                {
+                    v.color.rgb = UIGammaToLinear(v.color.rgb);
+                }
+#endif
                 OUT.color = v.color * _Color;
                 return OUT;
             }
@@ -113,13 +130,15 @@
             {
                 half4 color = (tex2D(_MainTex, IN.texcoord.xy) + _TextureSampleAdd) * IN.color;
 
-                #ifdef UNITY_UI_CLIP_RECT
-                color.a *= UnityGet2DClipping(IN.worldPosition.xy, _ClipRect);
-                #endif
+#ifdef UNITY_UI_CLIP_RECT
+                // color.a *= UnityGet2DClipping(IN.worldPosition.xy, _ClipRect);
+                half2 m = saturate((_ClipRect.zw - _ClipRect.xy - abs(IN.mask.xy)) * IN.mask.zw);
+                color.a *= m.x * m.y;
+#endif
 
-                #ifdef UNITY_UI_ALPHACLIP
+#ifdef UNITY_UI_ALPHACLIP
                 clip (color.a - 0.001);
-                #endif
+#endif
 
                 int i;
                 float luminance = Luminance(color.rgb);
