@@ -15,6 +15,7 @@ namespace GreatClock.Common.UIEffect {
 		private ShineData[] m_EffectShines = new ShineData[0];
 
 		public void Play() {
+			if (!mMaterialOK) { return; }
 			for (int i = m_EffectShines.Length - 1; i >= 0; i--) {
 				ShineData data = m_EffectShines[i];
 				if (data.AutoPlay) {
@@ -25,12 +26,14 @@ namespace GreatClock.Common.UIEffect {
 
 		public bool Play(int index) {
 			if (index < 0 || index >= m_EffectShines.Length) { return false; }
+			if (!mMaterialOK) { return false; }
 			m_EffectShines[index].Start();
 			return true;
 		}
 
 		public bool Play(string name) {
 			if (string.IsNullOrEmpty(name)) { return false; }
+			if (!mMaterialOK) { return false; }
 			int n = 0;
 			for (int i = m_EffectShines.Length - 1; i >= 0; i--) {
 				ShineData data = m_EffectShines[i];
@@ -116,6 +119,7 @@ namespace GreatClock.Common.UIEffect {
 		// private RawImage mRawImage;
 
 		private Material mRenderMaterial;
+		private bool mMaterialOK = true;
 
 		#region lifecycle
 		void Awake() {
@@ -128,12 +132,22 @@ namespace GreatClock.Common.UIEffect {
 			}
 		}
 
-		void Start() {
+		void OnEnable() {
 			Init();
 #if UNITY_EDITOR
 			if (Application.isPlaying) {
 #endif
-				Play();
+				if (mMaterialOK) { Play(); }
+#if UNITY_EDITOR
+			}
+#endif
+		}
+
+		void OnDisable() {
+#if UNITY_EDITOR
+			if (Application.isPlaying) {
+#endif
+				Stop();
 #if UNITY_EDITOR
 			}
 #endif
@@ -356,6 +370,13 @@ namespace GreatClock.Common.UIEffect {
 		}
 
 		Material IMaterialModifier.GetModifiedMaterial(Material baseMaterial) {
+			if (mGraphic.material != mGraphic.defaultMaterial) {
+				mMaterialOK = false;
+				Stop();
+				return baseMaterial;
+			}
+			bool flag = !mMaterialOK;
+			mMaterialOK = true;
 			if (mRenderMaterial == null) {
 				Debug.LogError("mRenderMaterial is null");
 				return baseMaterial;
@@ -367,6 +388,13 @@ namespace GreatClock.Common.UIEffect {
 				mRenderMaterial.SetFloat(s_id_stencil_write_mask, baseMaterial.GetFloat(s_id_stencil_write_mask));
 				mRenderMaterial.SetFloat(s_id_stencil_read_mask, baseMaterial.GetFloat(s_id_stencil_read_mask));
 			}
+#if UNITY_EDITOR
+			if (Application.isPlaying) {
+#endif
+				if (flag) { Play(); }
+#if UNITY_EDITOR
+			}
+#endif
 			return mRenderMaterial;
 		}
 
