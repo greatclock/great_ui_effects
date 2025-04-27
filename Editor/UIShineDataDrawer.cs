@@ -184,10 +184,12 @@ namespace GreatClock.Common.UIEffect {
 			switch (type) {
 				case UIEffectShine.eShineType.Linear:
 					props.Add(new PropertySize("m_Gradient", lineheight));
+					props.Add(new PropertySize("m_GradientLUT", lineheight));
 					props.Add(new PropertySize("m_LightWidth", lineheight));
 					break;
 				case UIEffectShine.eShineType.Ring:
 					props.Add(new PropertySize("m_Gradient", lineheight));
+					props.Add(new PropertySize("m_GradientLUT", lineheight));
 					props.Add(new PropertySize("m_Pivot", lineheight));
 					props.Add(new PropertySize("m_LightWidth", lineheight));
 					props.Add(new PropertySize("m_EnvelopeSize", lineheight));

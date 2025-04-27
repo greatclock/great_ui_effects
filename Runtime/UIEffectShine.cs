@@ -356,8 +356,10 @@ namespace GreatClock.Common.UIEffect {
 					mat.SetVectorArray(s_id_color_keys, cbuffer);
 					mat.SetInt(s_id_alpha_key_count, an);
 					mat.SetVectorArray(s_id_alpha_keys, abuffer);
+					mat.mainTexture = data.GradientLUT;
 					Graphics.Blit(null, mGradientsTexture, mat);
 				}
+				DestroyImmediate(mat);
 				mRenderMaterial.SetTexture(s_id_gradient, mGradientsTexture);
 			}
 			float uvy = n_ * 0.5f;
@@ -499,6 +501,8 @@ namespace GreatClock.Common.UIEffect {
 			[SerializeField]
 			private eShineType m_ShineType;
 			[SerializeField]
+			private Texture m_GradientLUT;
+			[SerializeField]
 			private Gradient m_Gradient;
 			[SerializeField]
 			private Gradient m_ColorOverLifetime;
@@ -534,6 +538,8 @@ namespace GreatClock.Common.UIEffect {
 			public eShineType ShineType { get { return m_ShineType; } }
 
 			public Gradient Gradient { get { return m_Gradient; } }
+
+			public Texture GradientLUT {  get { return m_GradientLUT; } }
 
 			public Texture Texture { get { return m_Texture; } }
 

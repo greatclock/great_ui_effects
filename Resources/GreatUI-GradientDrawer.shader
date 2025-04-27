@@ -2,7 +2,7 @@
 {
     Properties
     {
-        // _MainTex ("Texture", 2D) = "white" {}
+        _MainTex ("Texture", 2D) = "white" {}
     }
     SubShader
     {
@@ -25,7 +25,7 @@
 
             struct v2f
             {
-                float4 uv : TEXCOORD0;
+                float2 uv : TEXCOORD0;
                 float4 vertex : SV_POSITION;
             };
 
@@ -34,13 +34,19 @@
             v2f vert (appdata v)
             {
                 v2f o;
-                o.vertex = UnityObjectToClipPos(v.vertex);
-                o.uv.xy = v.uv;
-                o.uv.zw = (v.uv - _Rect.xy) / _Rect.zw;
+                float4 vertex = UnityObjectToClipPos(v.vertex);
+                float4 rect = _Rect;
+#if UNITY_UV_STARTS_AT_TOP
+                rect.y = 1 - rect.y - rect.w;
+#endif
+                float2 xy = rect.xy + rect.zw * (vertex.xy / vertex.w + 1) * 0.5;
+                o.vertex = float4((xy * 2 - 1) * vertex.w, vertex.z, vertex.w);
+                o.uv = v.uv;
+
                 return o;
             }
 
-            // sampler2D _MainTex;
+            sampler2D _MainTex;
             int _ColorKeyCount;
             float4 _ColorKeys[16];
             int _AlphaKeyCount;
@@ -48,8 +54,7 @@
 
             fixed4 frag (v2f i) : SV_Target
             {
-                clip(float4(i.uv.zw, 1 - i.uv.zw));
-                float x = i.uv.z;
+                float x = i.uv.x;
                 fixed4 color = fixed4(0, 0, 0, 0);
                 float4 cfrom = _ColorKeys[0];
                 for (int k = 1; k < _ColorKeyCount; k++)
@@ -73,7 +78,7 @@
                     }
                     afrom = key;
                 }
-                return color;
+                return color * tex2D(_MainTex, float2(x, x));
             }
             ENDCG
         }
