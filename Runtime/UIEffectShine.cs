@@ -511,7 +511,7 @@ namespace GreatClock.Common.UIEffect {
 			[SerializeField]
 			private Vector2 m_Pivot = new Vector2(0.5f, 0.5f);
 			[SerializeField]
-			private float m_Direction;
+			private FloatField m_Direction = new FloatField(0f);
 			[SerializeField]
 			private AnimationCurve m_MoveTweenEase;
 			[SerializeField]
@@ -544,16 +544,33 @@ namespace GreatClock.Common.UIEffect {
 			public Texture Texture { get { return m_Texture; } }
 
 			private float mDirection = float.NaN;
-			private float mSin, mCos;
-			public void GetRotationSinCos(out float sin, out float cos) {
-				if (mDirection != m_Direction) {
-					mDirection = m_Direction;
-					float rad = Mathf.Deg2Rad * m_Direction;
-					mSin = Mathf.Sin(rad);
-					mCos = Mathf.Cos(rad);
+			private float mPsin, mPcos;
+			private Vector2 mPF, mPT;
+			private void GetFromTo(float t, out float cos, out float sin, out Vector2 from, out Vector2 to) {
+				float direction = m_Direction.GetValue(t);
+				if (mDirection != direction) {
+					mDirection = direction;
+					float rad = Mathf.Deg2Rad * direction;
+					mPsin = Mathf.Sin(rad);
+					mPcos = Mathf.Cos(rad);
+					Vector2 dir = new Vector2(mPcos, mPsin);
+					float ta0 = Vector2.Dot(dir, mOA0);
+					float tb0 = Vector2.Dot(dir, mOB0);
+					float tc0 = Vector2.Dot(dir, mOC0);
+					float td0 = Vector2.Dot(dir, mOD0);
+					float ta1 = Vector2.Dot(dir, mOA1);
+					float tb1 = Vector2.Dot(dir, mOB1);
+					float tc1 = Vector2.Dot(dir, mOC1);
+					float td1 = Vector2.Dot(dir, mOD1);
+					float min = Mathf.Min(Mathf.Min(ta0, tb0), Mathf.Min(tc0, td0)) - mLightWidth.x;
+					float max = Mathf.Max(Mathf.Max(ta1, tb1), Mathf.Max(tc1, td1)) + mLightWidth.y;
+					mPF = mCenter + mPivot + dir * min;
+					mPT = mCenter + mPivot + dir * max;
 				}
-				sin = mSin;
-				cos = mCos;
+				sin = mPsin;
+				cos = mPcos;
+				from = mPF;
+				to = mPT;
 			}
 
 			public bool AutoPlay { get { return m_AutoPlay; } }
@@ -561,14 +578,12 @@ namespace GreatClock.Common.UIEffect {
 			public float UVy { get; set; }
 			public Rect UV { get; set; }
 
-			private Vector2 mFrom, mTo;
-
 			public void Init(Vector2 graphicSize) {
-				Vector2 center = graphicSize * 0.5f;
-				Vector2 pivot = graphicSize * m_Pivot - center;
-				Vector2 hs0 = center;
-				Vector2 hs1 = center;
-				Vector2 lightWidth = Vector2.zero;
+				mCenter = graphicSize * 0.5f;
+				mPivot = graphicSize * m_Pivot - mCenter;
+				Vector2 hs0 = mCenter;
+				Vector2 hs1 = mCenter;
+				mLightWidth = Vector2.zero;
 				if (m_ShineType == eShineType.Ring || m_ShineType == eShineType.Texture) {
 					float envelope0 = m_EnvelopeSize.GetValue(0f);
 					float envelope1 = m_EnvelopeSize.GetValue(1f);
@@ -578,32 +593,17 @@ namespace GreatClock.Common.UIEffect {
 					hs1 += new Vector2(envelope1, envelope1 / ratio1) * 0.5f;
 				}
 				if (m_ShineType == eShineType.Linear || m_ShineType == eShineType.Ring) {
-					lightWidth.x = m_LightWidth.GetValue(0f) * 0.5f;
-					lightWidth.y = m_LightWidth.GetValue(1f) * 0.5f;
+					mLightWidth.x = m_LightWidth.GetValue(0f) * 0.5f;
+					mLightWidth.y = m_LightWidth.GetValue(1f) * 0.5f;
 				}
-				Vector2 oa0 = new Vector2(-hs0.x, -hs0.y) - pivot;
-				Vector2 ob0 = new Vector2(-hs0.x, hs0.y) - pivot;
-				Vector2 oc0 = new Vector2(hs0.x, hs0.y) - pivot;
-				Vector2 od0 = new Vector2(hs0.x, -hs0.y) - pivot;
-				Vector2 oa1 = new Vector2(-hs1.x, -hs1.y) - pivot;
-				Vector2 ob1 = new Vector2(-hs1.x, hs1.y) - pivot;
-				Vector2 oc1 = new Vector2(hs1.x, hs1.y) - pivot;
-				Vector2 od1 = new Vector2(hs1.x, -hs1.y) - pivot;
-				float sin, cos;
-				GetRotationSinCos(out sin, out cos);
-				Vector2 dir = new Vector2(cos, sin);
-				float ta0 = Vector2.Dot(dir, oa0);
-				float tb0 = Vector2.Dot(dir, ob0);
-				float tc0 = Vector2.Dot(dir, oc0);
-				float td0 = Vector2.Dot(dir, od0);
-				float ta1 = Vector2.Dot(dir, oa1);
-				float tb1 = Vector2.Dot(dir, ob1);
-				float tc1 = Vector2.Dot(dir, oc1);
-				float td1 = Vector2.Dot(dir, od1);
-				float min = Mathf.Min(Mathf.Min(ta0, tb0), Mathf.Min(tc0, td0)) - lightWidth.x;
-				float max = Mathf.Max(Mathf.Max(ta1, tb1), Mathf.Max(tc1, td1)) + lightWidth.y;
-				mFrom = center + pivot + dir * min;
-				mTo = center + pivot + dir * max;
+				mOA0 = new Vector2(-hs0.x, -hs0.y) - mPivot;
+				mOB0 = new Vector2(-hs0.x, hs0.y) - mPivot;
+				mOC0 = new Vector2(hs0.x, hs0.y) - mPivot;
+				mOD0 = new Vector2(hs0.x, -hs0.y) - mPivot;
+				mOA1 = new Vector2(-hs1.x, -hs1.y) - mPivot;
+				mOB1 = new Vector2(-hs1.x, hs1.y) - mPivot;
+				mOC1 = new Vector2(hs1.x, hs1.y) - mPivot;
+				mOD1 = new Vector2(hs1.x, -hs1.y) - mPivot;
 			}
 
 			public void ResetPivot(Vector2 pivot) {
@@ -622,6 +622,11 @@ namespace GreatClock.Common.UIEffect {
 
 			public bool Playing { get { return mPlaying; } }
 
+			private Vector2 mLightWidth;
+			private Vector2 mCenter, mPivot;
+			private Vector2 mOA0, mOB0, mOC0, mOD0;
+			private Vector2 mOA1, mOB1, mOC1, mOD1;
+
 			private bool mPlaying = false;
 			private float mTimer;
 			public bool Tick(float deltaTime, ref Vector4 p0, ref Vector4 p1, ref Vector4 p2, ref Vector4 p3, ref Vector4 p4) {
@@ -638,11 +643,14 @@ namespace GreatClock.Common.UIEffect {
 					}
 					return false;
 				}
-				Vector2 p = Vector2.LerpUnclamped(mFrom, mTo, m_MoveTweenEase.Evaluate(Mathf.Min(mTimer, dur)));
+				float sin, cos;
+				Vector2 from, to;
+				GetFromTo(t, out cos, out sin, out from, out to);
+				Vector2 p = Vector2.LerpUnclamped(from, to, m_MoveTweenEase.Evaluate(Mathf.Min(mTimer, dur)));
 				float envelopesize, ratio;
 				switch (m_ShineType) {
 					case eShineType.Linear:
-						p0 = new Vector4(p.x, p.y, mCos, mSin);
+						p0 = new Vector4(p.x, p.y, cos, sin);
 						p3 = new Vector4(m_LightWidth.GetValue(t) * 0.5f, UVy, 1f, 1f);
 						break;
 					case eShineType.Ring:
@@ -656,7 +664,7 @@ namespace GreatClock.Common.UIEffect {
 						float rotation = m_Rotation.GetValue(t) * Mathf.Deg2Rad;
 						envelopesize = m_EnvelopeSize.GetValue(t) * 0.5f;
 						ratio = m_EnvelopeAspectRatio.GetValue(t);
-						p0 = new Vector4(p.x, p.y, mCos, mSin);
+						p0 = new Vector4(p.x, p.y, cos, sin);
 						p3 = new Vector4(envelopesize, envelopesize / ratio, Mathf.Cos(rotation), Mathf.Sin(rotation));
 						p4 = new Vector4(UV.x, UV.y, UV.width, UV.height);
 						break;
